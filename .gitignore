@@ -1,0 +1,16 @@
+node_modules/
+.env
+tickets/
+*.log
+.DS_Store
+
+# No subir información sensible
+MI_BOT_INFO_PERSONAL.md
+
+# Archivos de Windows
+Thumbs.db
+desktop.ini
+
+# Archivos de backup
+*.bak
+*.backup
