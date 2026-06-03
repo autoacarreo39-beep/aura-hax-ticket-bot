@@ -37,10 +37,13 @@ client.once('ready', () => {
 
 // Manejo de mensajes
 client.on('messageCreate', async (message) => {
+  console.log(`📨 Mensaje recibido: "${message.content}" de ${message.author.tag} (ID: ${message.author.id})`);
+  
   if (message.author.bot) return;
 
   // Comando !setup (solo owner)
   if (message.content === '!setup' && message.author.id === process.env.OWNER_ID) {
+    console.log(`✅ Comando !setup ejecutado por owner`);
     await setupTicketPanel(message);
     return;
   }
