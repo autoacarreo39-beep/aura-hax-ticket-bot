@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎫 Aura Hax - Panel Admin</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e1e2e 0%, #2d2d44 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            padding: 30px 0;
+            border-bottom: 2px solid #00ff00;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            color: #00ff00;
+            font-size: 2.5em;
+            text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+        }
+        
+        .status {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .status-item {
+            background: rgba(0, 255, 0, 0.1);
+            padding: 10px 20px;
+            border-radius: 5px;
+            border-left: 3px solid #00ff00;
+        }
+        
+        .nav {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .nav button {
+            padding: 12px 25px;
+            background: rgba(0, 255, 0, 0.1);
+            border: 2px solid #00ff00;
+            color: #00ff00;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+        
+        .nav button:hover, .nav button.active {
+            background: #00ff00;
+            color: #1e1e2e;
+        }
+        
+        .section {
+            display: none;
+        }
+        
+        .section.active {
+            display: block;
+        }
+        
+        .ticket-card {
+            background: rgba(0, 255, 0, 0.05);
+            border: 2px solid #00ff00;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .ticket-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #00ff00;
+            padding-bottom: 10px;
+        }
+        
+        .ticket-id {
+            color: #00ff00;
+            font-weight: bold;
+        }
+        
+        .ticket-status {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+        
+        .status-pending {
+            background: #ff9800;
+            color: white;
+        }
+        
+        .status-approved {
+            background: #4caf50;
+            color: white;
+        }
+        
+        .status-rejected {
+            background: #f44336;
+            color: white;
+        }
+        
+        .ticket-info {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .info-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            border-radius: 5px;
+        }
+        
+        .info-label {
+            color: #00ff00;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+        
+        .info-value {
+            color: #e0e0e0;
+            margin-top: 5px;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            flex: 1;
+        }
+        
+        .btn-approve {
+            background: #4caf50;
+            color: white;
+        }
+        
+        .btn-approve:hover {
+            background: #45a049;
+        }
+        
+        .btn-reject {
+            background: #f44336;
+            color: white;
+        }
+        
+        .btn-reject:hover {
+            background: #da190b;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #00ff00;
+            font-weight: bold;
+        }
+        
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid #00ff00;
+            color: #e0e0e0;
+            border-radius: 5px;
+            font-family: inherit;
+        }
+        
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: #1e1e2e;
+            border: 2px solid #00ff00;
+            border-radius: 10px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+        }
+        
+        .modal-header {
+            font-size: 1.5em;
+            color: #00ff00;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #00ff00;
+            padding-bottom: 10px;
+        }
+        
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: #00ff00;
+            font-size: 2em;
+            cursor: pointer;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .success-message {
+            background: #4caf50;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .error-message {
+            background: #f44336;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎫 Aura Hax - Panel Admin</h1>
+            <div class="status">
+                <div class="status-item">
+                    <span id="bot-status">Estado: Cargando...</span>
+                </div>
+                <div class="status-item">
+                    <span id="owner-info">Owner: Cargando...</span>
+                </div>
+            </div>
+        </header>
+        
+        <div class="nav">
+            <button class="nav-btn active" data-section="tickets">🎫 Tickets</button>
+            <button class="nav-btn" data-section="config">⚙️ Configuración</button>
+        </div>
+        
+        <!-- SECTION: TICKETS -->
+        <div id="tickets" class="section active">
+            <h2 style="color: #00ff00; margin-bottom: 20px;">Tickets Pendientes</h2>
+            <div id="tickets-container">
+                <div class="empty-state">Cargando tickets...</div>
+            </div>
+        </div>
+        
+        <!-- SECTION: CONFIGURACIÓN -->
+        <div id="config" class="section">
+            <h2 style="color: #00ff00; margin-bottom: 20px;">⚙️ Configuración del Bot</h2>
+            
+            <div id="config-message"></div>
+            
+            <div class="form-group">
+                <label>Nombre del Bot</label>
+                <input type="text" id="botName" placeholder="Nombre del bot">
+            </div>
+            
+            <h3 style="color: #00ff00; margin-top: 30px; margin-bottom: 15px;">Productos</h3>
+            <div id="products-container"></div>
+            
+            <h3 style="color: #00ff00; margin-top: 30px; margin-bottom: 15px;">Métodos de Pago</h3>
+            <div id="payment-methods-container"></div>
+            
+            <button class="btn" style="background: #00ff00; color: #1e1e2e; margin-top: 30px; padding: 15px;" onclick="saveConfig()">
+                💾 Guardar Configuración
+            </button>
+        </div>
+    </div>
+    
+    <!-- MODAL PARA ENTREGAR KEYS -->
+    <div id="keysModal" class="modal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="closeKeysModal()">×</button>
+            <div class="modal-header">🔑 Entregar Keys</div>
+            <div class="form-group">
+                <label>Keys (una por línea)</label>
+                <textarea id="keysInput" rows="5" placeholder="key1&#10;key2&#10;key3"></textarea>
+            </div>
+            <button class="btn btn-approve" onclick="submitKeys()">Enviar Keys</button>
+        </div>
+    </div>
+    
+    <script>
+        let currentTicketId = null;
+        let configData = {};
+        
+        // Navigation
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const section = btn.dataset.section;
+                document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+                document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+                
+                document.getElementById(section).classList.add('active');
+                btn.classList.add('active');
+            });
+        });
+        
+        // Load status
+        async function loadStatus() {
+            try {
+                const res = await fetch('/api/status');
+                const data = await res.json();
+                document.getElementById('bot-status').textContent = `✅ Bot Online`;
+                document.getElementById('owner-info').textContent = `👑 Owner: ${data.owner}`;
+            } catch (err) {
+                document.getElementById('bot-status').textContent = `❌ Bot Offline`;
+            }
+        }
+        
+        // Load tickets
+        async function loadTickets() {
+            try {
+                const res = await fetch('/api/tickets');
+                const tickets = await res.json();
+                const container = document.getElementById('tickets-container');
+                
+                if (tickets.length === 0) {
+                    container.innerHTML = '<div class="empty-state">No hay tickets pendientes</div>';
+                    return;
+                }
+                
+                container.innerHTML = tickets.map(ticket => `
+                    <div class="ticket-card">
+                        <div class="ticket-header">
+                            <span class="ticket-id">Ticket #${ticket.id}</span>
+                            <span class="ticket-status status-${ticket.status}">${ticket.status.toUpperCase()}</span>
+                        </div>
+                        <div class="ticket-info">
+                            <div class="info-item">
+                                <div class="info-label">Cliente</div>
+                                <div class="info-value">${ticket.client}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Producto</div>
+                                <div class="info-value">${ticket.product}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Cantidad</div>
+                                <div class="info-value">${ticket.quantity} licencias</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Total</div>
+                                <div class="info-value">$${ticket.total} USD</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Método de Pago</div>
+                                <div class="info-value">${ticket.paymentMethod}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Comprobante</div>
+                                <div class="info-value"><a href="${ticket.proof}" target="_blank" style="color: #00ff00;">Ver imagen</a></div>
+                            </div>
+                        </div>
+                        ${ticket.status === 'pending' ? `
+                            <div class="button-group">
+                                <button class="btn btn-approve" onclick="openKeysModal('${ticket.id}')">✅ Aprobar</button>
+                                <button class="btn btn-reject" onclick="rejectTicket('${ticket.id}')">❌ Rechazar</button>
+                            </div>
+                        ` : ''}
+                    </div>
+                `).join('');
+            } catch (err) {
+                console.error('Error cargando tickets:', err);
+            }
+        }
+        
+        // Load config
+        async function loadConfig() {
+            try {
+                const res = await fetch('/api/config');
+                configData = await res.json();
+                
+                document.getElementById('botName').value = configData.botName;
+                
+                // Products
+                const productsContainer = document.getElementById('products-container');
+                productsContainer.innerHTML = configData.products.map((p, idx) => `
+                    <div style="background: rgba(0, 255, 0, 0.05); padding: 15px; border-radius: 5px; margin-bottom: 15px;">
+                        <input type="text" value="${p.name}" placeholder="Nombre del producto" onchange="configData.products[${idx}].name = this.value">
+                    </div>
+                `).join('');
+                
+                // Payment methods
+                const paymentContainer = document.getElementById('payment-methods-container');
+                paymentContainer.innerHTML = configData.paymentMethods.map((m, idx) => `
+                    <div style="background: rgba(0, 255, 0, 0.05); padding: 15px; border-radius: 5px; margin-bottom: 15px;">
+                        <input type="text" value="${m.name}" placeholder="Nombre del método" onchange="configData.paymentMethods[${idx}].name = this.value">
+                    </div>
+                `).join('');
+            } catch (err) {
+                console.error('Error cargando config:', err);
+            }
+        }
+        
+        function openKeysModal(ticketId) {
+            currentTicketId = ticketId;
+            document.getElementById('keysModal').classList.add('active');
+        }
+        
+        function closeKeysModal() {
+            document.getElementById('keysModal').classList.remove('active');
+            document.getElementById('keysInput').value = '';
+        }
+        
+        async function submitKeys() {
+            const keys = document.getElementById('keysInput').value.split('\n').filter(k => k.trim());
+            
+            try {
+                const res = await fetch(`/api/tickets/${currentTicketId}/approve`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ keys })
+                });
+                
+                const data = await res.json();
+                if (data.success) {
+                    alert('✅ Ticket aprobado y keys entregadas');
+                    closeKeysModal();
+                    loadTickets();
+                }
+            } catch (err) {
+                alert('❌ Error al aprobar ticket');
+            }
+        }
+        
+        async function rejectTicket(ticketId) {
+            if (!confirm('¿Rechazar este ticket?')) return;
+            
+            try {
+                const res = await fetch(`/api/tickets/${ticketId}/reject`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await res.json();
+                if (data.success) {
+                    alert('❌ Ticket rechazado');
+                    loadTickets();
+                }
+            } catch (err) {
+                alert('❌ Error al rechazar ticket');
+            }
+        }
+        
+        async function saveConfig() {
+            try {
+                const res = await fetch('/api/config/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(configData)
+                });
+                
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('config-message').innerHTML = '<div class="success-message">✅ Configuración guardada</div>';
+                    setTimeout(() => {
+                        document.getElementById('config-message').innerHTML = '';
+                    }, 3000);
+                }
+            } catch (err) {
+                alert('❌ Error al guardar configuración');
+            }
+        }
+        
+        // Initial load
+        loadStatus();
+        loadTickets();
+        loadConfig();
+        
+        // Refresh tickets every 30 seconds
+        setInterval(loadTickets, 30000);
+    </script>
+</body>
+</html>
