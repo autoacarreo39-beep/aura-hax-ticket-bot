@@ -1,10 +1,6 @@
-import { Client, GatewayIntentBits, Partials, Collection, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle, ChannelSelectMenuBuilder, REST, Routes } from 'discord.js';
+import { Client, GatewayIntentBits, Partials, Collection, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } from 'discord.js';
 import { config } from 'dotenv';
 import config_bot from './config.js';
-import { handleButton } from './handlers/buttonHandler.js';
-import { handleSelect } from './handlers/selectHandler.js';
-import { handleModal } from './handlers/modalHandler.js';
-import { handleOwnerDM } from './handlers/ownerHandler.js';
 
 config();
 
@@ -16,196 +12,151 @@ const client = new Client({
     GatewayIntentBits.DirectMessages,
     GatewayIntentBits.GuildMembers,
   ],
-  partials: [
-    Partials.Channel,
-    Partials.Message,
-  ]
+  partials: [Partials.Channel, Partials.Message]
 });
 
 client.activeTickets = new Collection();
-client.pendingApprovals = new Collection();
 
-// Registrar slash commands
-const commands = [
-  {
-    name: 'start',
-    description: 'Inicia el panel de configuración del bot',
-  }
-];
-
-client.once('ready', async () => {
-  console.log(`✅ Bot conectado como ${client.user.tag}`);
-  console.log(`👑 Owner: ${process.env.OWNER_ID}`);
-  console.log(`🎫 ${config_bot.botName} - Listo`);
-  
+client.once('ready', () => {
+  console.log(`✅ Bot: ${client.user.tag}`);
+  console.log(`🎫 ${config_bot.botName} - Online`);
   client.user.setActivity('🎫 Aura Hax', { type: 3 });
 
-  // Registrar slash commands
-  try {
-    const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
-    
-    await rest.put(
-      Routes.applicationCommands(client.user.id),
-      { body: commands }
-    );
-    
-    console.log(`✅ Slash commands registrados`);
-  } catch (error) {
-    console.error('Error registrando slash commands:', error);
-  }
+  // Enviar panel al canal
+  setTimeout(async () => {
+    try {
+      const guild = await client.guilds.fetch(process.env.GUILD_ID);
+      const channel = guild.channels.cache.first();
+      
+      if (channel && channel.isTextBased()) {
+        const embed = new EmbedBuilder()
+          .setTitle(`🎫 ${config_bot.botName}`)
+          .setDescription(
+            `**Productos disponibles:**\n` +
+            `${config_bot.products.map(p => `🔹 ${p.name}`).join('\n')}\n\n` +
+            `Haz clic para crear un ticket`
+          )
+          .setColor(config_bot.colors.primary)
+          .setFooter({ text: config_bot.botName });
+
+        const row = new ActionRowBuilder()
+          .addComponents(
+            new ButtonBuilder()
+              .setCustomId('create_ticket')
+              .setLabel('Crear Ticket')
+              .setStyle(ButtonStyle.Success)
+              .setEmoji('🎫')
+          );
+
+        await channel.send({ embeds: [embed], components: [row] });
+      }
+    } catch (error) {
+      console.log('Panel ya existe o error:', error.message);
+    }
+  }, 2000);
 });
 
 client.on('interactionCreate', async (interaction) => {
   try {
-    // Slash command /start
-    if (interaction.isCommand()) {
-      if (interaction.commandName === 'start') {
-        // Verificar si es el owner
-        if (interaction.user.id !== process.env.OWNER_ID) {
-          await interaction.reply({ 
-            content: '❌ No tienes permiso para usar este comando',
-            ephemeral: true 
-          });
-          console.log(`⚠️ Intento no autorizado de /start por ${interaction.user.tag} (ID: ${interaction.user.id})`);
-          return;
-        }
+    if (!interaction.isButton() && !interaction.isStringSelectMenu() && !interaction.isModalSubmit()) return;
 
-        console.log(`✅ /start ejecutado por owner ${interaction.user.tag}`);
+    if (interaction.isButton()) {
+      if (interaction.customId === 'create_ticket') {
+        // Selector de producto
+        const productSelect = new StringSelectMenuBuilder()
+          .setCustomId('select_product')
+          .setPlaceholder('Selecciona un producto')
+          .addOptions(
+            config_bot.products.map(p => ({
+              label: p.name,
+              value: p.id,
+              emoji: '🔹'
+            }))
+          );
 
-        // Responder en el servidor
-        await interaction.reply({ 
-          content: '✅ Configuración iniciada. Revisa tu DM.',
-          ephemeral: true 
-        });
-
-        // Enviar DM al owner con opciones de configuración
-        try {
-          const owner = await client.users.fetch(process.env.OWNER_ID);
-          
-          const configEmbed = new EmbedBuilder()
-            .setTitle(`🎫 ${config_bot.botName} - Panel de Control`)
-            .setDescription(
-              `**Bot Online y Listo**\n\n` +
-              `**Productos disponibles:**\n` +
-              `${config_bot.products.map(p => `🔹 ${p.name}`).join('\n')}\n\n` +
-              `**Métodos de pago:**\n` +
-              `${config_bot.paymentMethods.map(m => `${m.emoji} ${m.name}`).join('\n')}\n\n` +
-              `Usa los botones de abajo para configurar el panel de tickets.`
-            )
-            .setColor(config_bot.colors.primary)
-            .setFooter({ text: config_bot.botName });
-
-          const row = new ActionRowBuilder()
-            .addComponents(
-              new ButtonBuilder()
-                .setCustomId('setup_panel')
-                .setLabel('📋 Configurar Panel')
-                .setStyle(ButtonStyle.Primary),
-              new ButtonBuilder()
-                .setCustomId('view_stats')
-                .setLabel('📊 Ver Estadísticas')
-                .setStyle(ButtonStyle.Secondary)
-            );
-
-          await owner.send({ embeds: [configEmbed], components: [row] });
-          console.log(`📧 DM de configuración enviado al owner`);
-        } catch (error) {
-          console.error('Error enviando DM al owner:', error);
-        }
+        const row = new ActionRowBuilder().addComponents(productSelect);
+        await interaction.reply({ content: 'Selecciona un producto:', components: [row], ephemeral: true });
       }
     }
 
-    // Buttons
-    if (interaction.isButton()) {
-      if (interaction.customId === 'setup_panel') {
-        // Mostrar selector de canal
-        const channelSelectRow = new ActionRowBuilder()
-          .addComponents(
-            new ChannelSelectMenuBuilder()
-              .setCustomId('select_channel')
-              .setPlaceholder('Selecciona un canal')
+    if (interaction.isStringSelectMenu()) {
+      if (interaction.customId === 'select_product') {
+        const productId = interaction.values[0];
+        const product = config_bot.products.find(p => p.id === productId);
+
+        // Selector de plan
+        const planSelect = new StringSelectMenuBuilder()
+          .setCustomId(`select_plan_${productId}`)
+          .setPlaceholder('Selecciona un plan')
+          .addOptions(
+            product.plans.map(plan => ({
+              label: plan.label,
+              value: `${plan.days}`,
+              emoji: '📅'
+            }))
           );
 
+        const row = new ActionRowBuilder().addComponents(planSelect);
+        await interaction.reply({ content: `Producto: **${product.name}**\n\nSelecciona un plan:`, components: [row], ephemeral: true });
+      } else if (interaction.customId.startsWith('select_plan_')) {
+        const days = parseInt(interaction.values[0]);
+        
+        // Selector de cantidad
+        const qtySelect = new StringSelectMenuBuilder()
+          .setCustomId(`select_qty_${days}`)
+          .setPlaceholder('Selecciona cantidad')
+          .addOptions(
+            [1, 2, 3, 4, 5].map(q => ({
+              label: `${q} licencia${q > 1 ? 's' : ''}`,
+              value: `${q}`,
+              emoji: '📦'
+            }))
+          );
+
+        const row = new ActionRowBuilder().addComponents(qtySelect);
+        await interaction.reply({ content: `Plan: **${days} días**\n\nSelecciona cantidad:`, components: [row], ephemeral: true });
+      } else if (interaction.customId.startsWith('select_qty_')) {
+        const quantity = parseInt(interaction.values[0]);
+        
+        // Selector de método de pago
+        const paymentSelect = new StringSelectMenuBuilder()
+          .setCustomId(`select_payment_${quantity}`)
+          .setPlaceholder('Selecciona método de pago')
+          .addOptions(
+            config_bot.paymentMethods.map(m => ({
+              label: m.name,
+              value: m.id,
+              emoji: m.emoji,
+              description: m.display
+            }))
+          );
+
+        const row = new ActionRowBuilder().addComponents(paymentSelect);
+        await interaction.reply({ content: `Cantidad: **${quantity} licencia${quantity > 1 ? 's' : ''}**\n\nSelecciona método de pago:`, components: [row], ephemeral: true });
+      } else if (interaction.customId.startsWith('select_payment_')) {
+        const paymentMethod = interaction.values[0];
+        const payment = config_bot.paymentMethods.find(m => m.id === paymentMethod);
+
+        // Guardar ticket temporal
+        const ticketData = {
+          userId: interaction.user.id,
+          username: interaction.user.username,
+          payment: payment.name,
+          createdAt: new Date()
+        };
+
+        client.activeTickets.set(interaction.user.id, ticketData);
+
         await interaction.reply({ 
-          content: '📍 Selecciona el canal donde quieres el panel de tickets:',
-          components: [channelSelectRow],
+          content: `${payment.emoji} **${payment.name}**\n\n${payment.display}\n\n✅ Tu ticket está registrado. Por favor, envía el comprobante de pago en este canal.`,
           ephemeral: true 
         });
-      } else if (interaction.customId === 'view_stats') {
-        const statsEmbed = new EmbedBuilder()
-          .setTitle('📊 Estadísticas')
-          .setDescription('Aún no hay tickets')
-          .setColor(config_bot.colors.info);
-        
-        await interaction.reply({ embeds: [statsEmbed], ephemeral: true });
-      } else {
-        await handleButton(client, interaction);
       }
-    } 
-    
-    // Select menus
-    else if (interaction.isStringSelectMenu()) {
-      if (interaction.customId === 'select_channel') {
-        const channel = interaction.channels.first();
-        
-        if (channel) {
-          // Crear el panel de tickets
-          const panelEmbed = new EmbedBuilder()
-            .setTitle(`🎫 ${config_bot.botName}`)
-            .setDescription(
-              `**Suscripciones disponibles**\n` +
-              `⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n` +
-              `${config_bot.products.map(p => `🔹 ${p.name}`).join('\n')}\n` +
-              `⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n\n` +
-              `Haz clic en el botón para seleccionar una suscripción.\n\n` +
-              `**Métodos de pago disponibles:**\n` +
-              `${config_bot.paymentMethods.map(m => `${m.emoji} ${m.name} - ${m.display}`).join('\n')}\n\n` +
-              `${config_bot.copyright}`
-            )
-            .setColor(config_bot.colors.primary)
-            .setFooter({ text: config_bot.botName })
-            .setTimestamp();
-
-          const panelRow = new ActionRowBuilder()
-            .addComponents(
-              new ButtonBuilder()
-                .setCustomId('create_ticket')
-                .setLabel('Seleccione')
-                .setStyle(ButtonStyle.Success)
-                .setEmoji('🎫')
-            );
-
-          await channel.send({ embeds: [panelEmbed], components: [panelRow] });
-          
-          await interaction.reply({ 
-            content: `✅ Panel configurado en ${channel}`,
-            ephemeral: true 
-          });
-
-          console.log(`✅ Panel creado en ${channel.name}`);
-        }
-      } else {
-        await handleSelect(client, interaction);
-      }
-    } 
-    
-    // Modals
-    else if (interaction.isModalSubmit()) {
-      await handleModal(client, interaction);
     }
   } catch (error) {
     console.error('Error:', error);
-    if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply({ 
-        content: '❌ Error', 
-        ephemeral: true 
-      });
-    }
   }
 });
 
-process.on('unhandledRejection', error => {
-  console.error('Error:', error);
-});
-
 client.login(process.env.DISCORD_TOKEN);
+export { client };

@@ -1,18 +1,16 @@
 {
   "name": "aura-hax-ticket-bot",
   "version": "1.0.0",
-  "description": "Bot de Discord para venta de licencias FF - Complex con sistema de tickets",
-  "main": "index.js",
+  "description": "Bot de Discord para venta de licencias",
+  "main": "server.js",
   "type": "module",
   "scripts": {
-    "start": "node index.js",
-    "dev": "node index.js"
+    "start": "node server.js"
   },
-  "keywords": ["discord", "bot", "tickets", "keyauth", "ff"],
-  "author": "Aura Hax",
-  "license": "MIT",
   "dependencies": {
     "discord.js": "^14.14.1",
-    "dotenv": "^16.4.1"
+    "dotenv": "^16.4.1",
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
   }
 }

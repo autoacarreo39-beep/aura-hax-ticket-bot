@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎫 Aura Hax - Panel</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Arial', sans-serif; background: #1a1a1a; color: #fff; }
+        .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 20px 0; border-bottom: 2px solid #00ff00; margin-bottom: 30px; }
+        h1 { color: #00ff00; font-size: 2em; }
+        .tickets { display: grid; gap: 20px; }
+        .ticket { background: #222; border: 2px solid #00ff00; border-radius: 8px; padding: 20px; }
+        .ticket-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .ticket-id { color: #00ff00; font-weight: bold; }
+        .status { padding: 5px 15px; border-radius: 20px; font-weight: bold; }
+        .status-pending { background: #ff9800; }
+        .status-approved { background: #4caf50; }
+        .status-rejected { background: #f44336; }
+        .ticket-info { margin-bottom: 15px; }
+        .info-row { margin: 8px 0; }
+        .info-label { color: #00ff00; font-weight: bold; }
+        .buttons { display: flex; gap: 10px; }
+        .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; color: #fff; }
+        .btn-approve { background: #4caf50; }
+        .btn-reject { background: #f44336; }
+        .btn:hover { opacity: 0.8; }
+        .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); justify-content: center; align-items: center; z-index: 1000; }
+        .modal.active { display: flex; }
+        .modal-content { background: #222; border: 2px solid #00ff00; padding: 30px; border-radius: 10px; max-width: 400px; width: 90%; }
+        .modal-header { color: #00ff00; font-size: 1.3em; margin-bottom: 20px; }
+        textarea { width: 100%; padding: 10px; background: #333; border: 1px solid #00ff00; color: #fff; border-radius: 5px; font-family: monospace; }
+        .modal-buttons { display: flex; gap: 10px; margin-top: 20px; }
+        .empty { text-align: center; padding: 40px; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎫 Aura Hax - Panel Admin</h1>
+            <p>Gestiona tus tickets y entregas de licencias</p>
+        </header>
+
+        <div id="ticketsContainer" class="tickets"></div>
+    </div>
+
+    <div id="keysModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">🔑 Entregar Keys</div>
+            <textarea id="keysInput" rows="5" placeholder="key1&#10;key2&#10;key3"></textarea>
+            <div class="modal-buttons">
+                <button class="btn btn-approve" onclick="submitKeys()">Enviar</button>
+                <button class="btn" onclick="closeModal()" style="background: #666;">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentTicketId = null;
+
+        async function loadTickets() {
+            const res = await fetch('/api/tickets');
+            const tickets = await res.json();
+            const container = document.getElementById('ticketsContainer');
+
+            if (tickets.length === 0) {
+                container.innerHTML = '<div class="empty">No hay tickets</div>';
+                return;
+            }
+
+            container.innerHTML = tickets.map(t => `
+                <div class="ticket">
+                    <div class="ticket-header">
+                        <span class="ticket-id">Ticket #${t.id}</span>
+                        <span class="status status-${t.status}">${t.status.toUpperCase()}</span>
+                    </div>
+                    <div class="ticket-info">
+                        <div class="info-row"><span class="info-label">Usuario:</span> ${t.username}</div>
+                        <div class="info-row"><span class="info-label">Pago:</span> ${t.payment}</div>
+                        <div class="info-row"><span class="info-label">Fecha:</span> ${new Date(t.createdAt).toLocaleString()}</div>
+                        ${t.keys ? `<div class="info-row"><span class="info-label">Keys:</span> ${t.keys.join(', ')}</div>` : ''}
+                    </div>
+                    ${t.status === 'pending' ? `
+                        <div class="buttons">
+                            <button class="btn btn-approve" onclick="openKeysModal('${t.id}')">✅ Aprobar</button>
+                            <button class="btn btn-reject" onclick="rejectTicket('${t.id}')">❌ Rechazar</button>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        function openKeysModal(ticketId) {
+            currentTicketId = ticketId;
+            document.getElementById('keysModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('keysModal').classList.remove('active');
+            document.getElementById('keysInput').value = '';
+        }
+
+        async function submitKeys() {
+            const keys = document.getElementById('keysInput').value.split('\n').filter(k => k.trim());
+            
+            await fetch(`/api/tickets/${currentTicketId}/approve`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ keys })
+            });
+
+            closeModal();
+            loadTickets();
+        }
+
+        async function rejectTicket(ticketId) {
+            if (!confirm('¿Rechazar ticket?')) return;
+            
+            await fetch(`/api/tickets/${ticketId}/reject`, {
+                method: 'POST'
+            });
+
+            loadTickets();
+        }
+
+        loadTickets();
+        setInterval(loadTickets, 5000);
+    </script>
+</body>
+</html>
