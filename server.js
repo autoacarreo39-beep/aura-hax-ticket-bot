@@ -4,13 +4,7 @@ import bodyParser from 'body-parser';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { config } from 'dotenv';
-import { Client, GatewayIntentBits, Partials, Collection } from 'discord.js';
-import config_bot from './config.js';
-import { setupTicketPanel } from './commands/setup.js';
-import { handleButton } from './handlers/buttonHandler.js';
-import { handleSelect } from './handlers/selectHandler.js';
-import { handleModal } from './handlers/modalHandler.js';
-import { handleOwnerDM } from './handlers/ownerHandler.js';
+import './bot.js'; // Inicia el bot
 
 config();
 
@@ -28,16 +22,21 @@ app.use(express.static(join(__dirname, 'public')));
 // Almacenamiento en memoria (en producción usar base de datos)
 let ticketsData = new Map();
 let botsettings = {
-  products: config_bot.products,
-  paymentMethods: config_bot.paymentMethods,
-  botName: config_bot.botName
+  botName: 'Aura Hax Ticket',
+  products: [
+    { id: 'ff-complex', name: 'FF - Complex' },
+    { id: 'ff-bypass', name: 'FF - Bypass' }
+  ],
+  paymentMethods: [
+    { id: 'binance', name: 'Binance', emoji: '🟡', display: 'USDT (BEP20)' }
+  ]
 };
 
 // API Routes
 app.get('/api/status', (req, res) => {
   res.json({
     status: 'online',
-    botName: config_bot.botName,
+    botName: botsettings.botName,
     owner: process.env.OWNER_ID,
     guild: process.env.GUILD_ID
   });
@@ -98,76 +97,3 @@ app.get('/', (req, res) => {
 app.listen(PORT, () => {
   console.log(`🌐 Web servidor corriendo en puerto ${PORT}`);
 });
-
-// ========== DISCORD BOT ==========
-const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent,
-    GatewayIntentBits.DirectMessages,
-    GatewayIntentBits.GuildMembers,
-  ],
-  partials: [
-    Partials.Channel,
-    Partials.Message,
-  ]
-});
-
-// Storage temporal para tickets activos
-client.activeTickets = new Collection();
-client.pendingApprovals = new Collection();
-
-client.once('ready', () => {
-  console.log(`✅ Bot conectado como ${client.user.tag}`);
-  console.log(`👑 Owner: ${process.env.OWNER_ID}`);
-  console.log(`🎫 ${config_bot.botName} - Listo`);
-  
-  client.user.setActivity('🎫 Aura Hax', { type: 3 });
-});
-
-// Manejo de mensajes
-client.on('messageCreate', async (message) => {
-  console.log(`📨 Mensaje recibido: "${message.content}" de ${message.author.tag} (ID: ${message.author.id})`);
-  
-  if (message.author.bot) return;
-
-  // Comando !setup (solo owner)
-  if (message.content === '!setup' && message.author.id === process.env.OWNER_ID) {
-    console.log(`✅ Comando !setup ejecutado por owner`);
-    await setupTicketPanel(message);
-    return;
-  }
-
-  // DM al owner
-  if (message.channel.type === 1 && message.author.id === process.env.OWNER_ID) {
-    await handleOwnerDM(client, message);
-  }
-});
-
-// Manejo de interacciones
-client.on('interactionCreate', async (interaction) => {
-  try {
-    if (interaction.isButton()) {
-      await handleButton(client, interaction);
-    } else if (interaction.isStringSelectMenu()) {
-      await handleSelect(client, interaction);
-    } else if (interaction.isModalSubmit()) {
-      await handleModal(client, interaction);
-    }
-  } catch (error) {
-    console.error('Error:', error);
-    if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply({ 
-        content: '❌ Error', 
-        ephemeral: true 
-      });
-    }
-  }
-});
-
-process.on('unhandledRejection', error => {
-  console.error('Error:', error);
-});
-
-client.login(process.env.DISCORD_TOKEN);
