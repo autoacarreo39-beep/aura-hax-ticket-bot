@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits, Partials, Collection, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, ChannelSelectMenuBuilder } from 'discord.js';
+import { Client, GatewayIntentBits, Partials, Collection, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle, ChannelSelectMenuBuilder, REST, Routes } from 'discord.js';
 import { config } from 'dotenv';
 import config_bot from './config.js';
 import { handleButton } from './handlers/buttonHandler.js';
@@ -25,6 +25,14 @@ const client = new Client({
 client.activeTickets = new Collection();
 client.pendingApprovals = new Collection();
 
+// Registrar slash commands
+const commands = [
+  {
+    name: 'start',
+    description: 'Inicia el panel de configuración del bot',
+  }
+];
+
 client.once('ready', async () => {
   console.log(`✅ Bot conectado como ${client.user.tag}`);
   console.log(`👑 Owner: ${process.env.OWNER_ID}`);
@@ -32,55 +40,82 @@ client.once('ready', async () => {
   
   client.user.setActivity('🎫 Aura Hax', { type: 3 });
 
-  // Enviar DM al owner con opciones de configuración
+  // Registrar slash commands
   try {
-    const owner = await client.users.fetch(process.env.OWNER_ID);
+    const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
     
-    const configEmbed = new EmbedBuilder()
-      .setTitle(`🎫 ${config_bot.botName} - Panel de Control`)
-      .setDescription(
-        `**Bot Online y Listo**\n\n` +
-        `**Productos disponibles:**\n` +
-        `${config_bot.products.map(p => `🔹 ${p.name}`).join('\n')}\n\n` +
-        `**Métodos de pago:**\n` +
-        `${config_bot.paymentMethods.map(m => `${m.emoji} ${m.name}`).join('\n')}\n\n` +
-        `Usa los botones de abajo para configurar el panel de tickets.`
-      )
-      .setColor(config_bot.colors.primary)
-      .setFooter({ text: config_bot.botName });
-
-    const row = new ActionRowBuilder()
-      .addComponents(
-        new ButtonBuilder()
-          .setCustomId('setup_panel')
-          .setLabel('📋 Configurar Panel')
-          .setStyle(ButtonStyle.Primary),
-        new ButtonBuilder()
-          .setCustomId('view_stats')
-          .setLabel('📊 Ver Estadísticas')
-          .setStyle(ButtonStyle.Secondary)
-      );
-
-    await owner.send({ embeds: [configEmbed], components: [row] });
-    console.log(`📧 DM de configuración enviado al owner`);
+    await rest.put(
+      Routes.applicationCommands(client.user.id),
+      { body: commands }
+    );
+    
+    console.log(`✅ Slash commands registrados`);
   } catch (error) {
-    console.error('Error enviando DM al owner:', error);
-  }
-});
-
-client.on('messageCreate', async (message) => {
-  console.log(`📨 Mensaje: "${message.content}" de ${message.author.tag} (ID: ${message.author.id})`);
-  
-  if (message.author.bot) return;
-
-  // DM al owner
-  if (message.channel.type === 1 && message.author.id === process.env.OWNER_ID) {
-    await handleOwnerDM(client, message);
+    console.error('Error registrando slash commands:', error);
   }
 });
 
 client.on('interactionCreate', async (interaction) => {
   try {
+    // Slash command /start
+    if (interaction.isCommand()) {
+      if (interaction.commandName === 'start') {
+        // Verificar si es el owner
+        if (interaction.user.id !== process.env.OWNER_ID) {
+          await interaction.reply({ 
+            content: '❌ No tienes permiso para usar este comando',
+            ephemeral: true 
+          });
+          console.log(`⚠️ Intento no autorizado de /start por ${interaction.user.tag} (ID: ${interaction.user.id})`);
+          return;
+        }
+
+        console.log(`✅ /start ejecutado por owner ${interaction.user.tag}`);
+
+        // Responder en el servidor
+        await interaction.reply({ 
+          content: '✅ Configuración iniciada. Revisa tu DM.',
+          ephemeral: true 
+        });
+
+        // Enviar DM al owner con opciones de configuración
+        try {
+          const owner = await client.users.fetch(process.env.OWNER_ID);
+          
+          const configEmbed = new EmbedBuilder()
+            .setTitle(`🎫 ${config_bot.botName} - Panel de Control`)
+            .setDescription(
+              `**Bot Online y Listo**\n\n` +
+              `**Productos disponibles:**\n` +
+              `${config_bot.products.map(p => `🔹 ${p.name}`).join('\n')}\n\n` +
+              `**Métodos de pago:**\n` +
+              `${config_bot.paymentMethods.map(m => `${m.emoji} ${m.name}`).join('\n')}\n\n` +
+              `Usa los botones de abajo para configurar el panel de tickets.`
+            )
+            .setColor(config_bot.colors.primary)
+            .setFooter({ text: config_bot.botName });
+
+          const row = new ActionRowBuilder()
+            .addComponents(
+              new ButtonBuilder()
+                .setCustomId('setup_panel')
+                .setLabel('📋 Configurar Panel')
+                .setStyle(ButtonStyle.Primary),
+              new ButtonBuilder()
+                .setCustomId('view_stats')
+                .setLabel('📊 Ver Estadísticas')
+                .setStyle(ButtonStyle.Secondary)
+            );
+
+          await owner.send({ embeds: [configEmbed], components: [row] });
+          console.log(`📧 DM de configuración enviado al owner`);
+        } catch (error) {
+          console.error('Error enviando DM al owner:', error);
+        }
+      }
+    }
+
+    // Buttons
     if (interaction.isButton()) {
       if (interaction.customId === 'setup_panel') {
         // Mostrar selector de canal
@@ -106,7 +141,10 @@ client.on('interactionCreate', async (interaction) => {
       } else {
         await handleButton(client, interaction);
       }
-    } else if (interaction.isStringSelectMenu()) {
+    } 
+    
+    // Select menus
+    else if (interaction.isStringSelectMenu()) {
       if (interaction.customId === 'select_channel') {
         const channel = interaction.channels.first();
         
@@ -149,7 +187,10 @@ client.on('interactionCreate', async (interaction) => {
       } else {
         await handleSelect(client, interaction);
       }
-    } else if (interaction.isModalSubmit()) {
+    } 
+    
+    // Modals
+    else if (interaction.isModalSubmit()) {
       await handleModal(client, interaction);
     }
   } catch (error) {
