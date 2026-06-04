@@ -1,26 +1,19 @@
-import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } from 'discord.js';
+import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import config from '../config.js';
 
 export async function setupTicketPanel(message) {
   try {
-    console.log(`🔧 Iniciando setupTicketPanel...`);
+    console.log(`🔧 setupTicketPanel iniciado`);
     
     const embed = new EmbedBuilder()
-      .setTitle(`🎫 ${config.botName}`)
+      .setTitle(`🎫 Aura Hax`)
       .setDescription(
         `**Suscripciones disponibles**\n` +
-        `⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n` +
-        `🔹 FF - Complex\n` +
-        `🔹 FF - Bypass\n` +
-        `⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n\n` +
-        `Haz clic en el botón de abajo para seleccionar una suscripción.\n\n` +
-        `**Método de pago disponible:**\n` +
-        `🟡 Binance (USDT BEP20)\n\n` +
-        `${config.copyright}`
+        `FF - Complex\n` +
+        `FF - Bypass\n\n` +
+        `Seleccione una suscripción`
       )
-      .setColor(config.colors.primary)
-      .setThumbnail(message.guild.iconURL({ dynamic: true }))
-      .setFooter({ text: config.botName })
+      .setColor(0x00ff00)
       .setTimestamp();
 
     const row = new ActionRowBuilder()
@@ -32,15 +25,15 @@ export async function setupTicketPanel(message) {
           .setEmoji('🎫')
       );
 
-    console.log(`📤 Enviando embed al canal...`);
-    await message.channel.send({ 
+    console.log(`📤 Enviando mensaje...`);
+    const msg = await message.channel.send({ 
       embeds: [embed], 
       components: [row] 
     });
+    console.log(`✅ Mensaje enviado`);
 
-    console.log(`✅ Embed enviado exitosamente`);
-    await message.delete().catch(() => {});
+    await message.delete().catch(e => console.log('No se pudo borrar'));
   } catch (error) {
-    console.error(`❌ Error en setupTicketPanel:`, error);
+    console.error(`❌ Error:`, error.message);
   }
 }
