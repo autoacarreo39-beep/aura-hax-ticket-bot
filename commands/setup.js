@@ -1,27 +1,21 @@
-import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } from 'discord.js';
 import config from '../config.js';
 
 export async function setupTicketPanel(message) {
   try {
     console.log(`🔧 Iniciando setupTicketPanel...`);
     
-    // Descripción de precios
-    const pricesText = config.product.plans.map(plan => 
-      `- ${plan.days} Days = ${plan.price}$ USD`
-    ).join('\n');
-
     const embed = new EmbedBuilder()
       .setTitle(`🎫 ${config.botName}`)
       .setDescription(
-        `**${config.product.name}**\n` +
+        `**Suscripciones disponibles**\n` +
         `⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n` +
-        `${pricesText}\n` +
-        `⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n\n` +
-        `Haz clic en el botón de abajo para crear un ticket de compra.\n\n` +
-        `**Métodos de pago disponibles:**\n` +
-        `🟡 Binance (USDT BEP20)\n` +
-        `💜 Nequi (COP)\n` +
-        `💳 PayPal\n\n` +
+        `🔹 FF - Complex\n` +
+        `🔹 FF - Bypass\n` +
+        `⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n\n` +
+        `Haz clic en el botón de abajo para seleccionar una suscripción.\n\n` +
+        `**Método de pago disponible:**\n` +
+        `🟡 Binance (USDT BEP20)\n\n` +
         `${config.copyright}`
       )
       .setColor(config.colors.primary)
@@ -33,7 +27,7 @@ export async function setupTicketPanel(message) {
       .addComponents(
         new ButtonBuilder()
           .setCustomId('create_ticket')
-          .setLabel('Crear Ticket')
+          .setLabel('Seleccione')
           .setStyle(ButtonStyle.Success)
           .setEmoji('🎫')
       );
